@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,146 +23,130 @@ const (
 	maxMessageSize = 512
 )
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
-
-var upgrader = websocket.Upgrader{
+var upgrader = websocket.Upgrader {
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
-// Client is a middleman between the websocket connection and the hub.
-type Client struct {
-
-	hub *Hub
+// connection is an middleman between the websocket connection and the hub.
+type connection struct {
 
 	// The websocket connection.
-	conn *websocket.Conn
+	ws *websocket.Conn
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+
+	userId int
+
 }
 
 // readPump pumps messages from the websocket connection to the hub.
-//
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
-func (c *Client) readPump() {
+func (s subscription) readPump() {
+
+	c := s.conn
 
 	defer func() {
-		c.hub.unregister <- c
-		_ = c.conn.Close()
+		h.unregister <- s
+		_ = c.ws.Close()
 	}()
 
-	c.conn.SetReadLimit(maxMessageSize)
+	c.ws.SetReadLimit(maxMessageSize)
+	_ = c.ws.SetReadDeadline(time.Now().Add(pongWait))
 
-	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
-
-	c.conn.SetPongHandler(func(string) error {
-		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.ws.SetPongHandler(func(string) error {
+		_ = c.ws.SetReadDeadline(time.Now().Add(pongWait));
 		return nil
 	})
-	for {
 
-		_, message, err := c.conn.ReadMessage()
+	for {
+		_, msg, err := c.ws.ReadMessage()
 
 		if err != nil {
 
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
 			}
 
 			break
 		}
 
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		fmt.Println(string(message))
-
-		c.hub.broadcast <- message
+		m := message{msg, s.room}
+		h.broadcast <- m
 	}
 }
 
+// write writes a message with the given message type and payload.
+func (c *connection) write(mt int, payload []byte) error {
+	_ = c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+	return c.ws.WriteMessage(mt, payload)
+}
+
 // writePump pumps messages from the hub to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
-func (c *Client) writePump() {
+func (s *subscription) writePump() {
+
+	c := s.conn
 
 	ticker := time.NewTicker(pingPeriod)
 
 	defer func() {
 		ticker.Stop()
-		_ =c.conn.Close()
+		_ = c.ws.Close()
 	}()
 
 	for {
-
 		select {
-		case message, ok := <- c.send:
 
-			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-c.send:
 
 			if !ok {
-
-				// The hub closed the channel.
-				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.write(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-
-			if err != nil {
+			if err := c.write(websocket.TextMessage, message); err != nil {
 				return
 			}
-			_, _ = w.Write(message)
 
-			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				_, _ = w.Write(newline)
-				_, _ = w.Write(<-c.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
-			}
 		case <-ticker.C:
-			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+
+			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
 				return
 			}
+
 		}
 	}
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func serveWs(w http.ResponseWriter, r *http.Request, roomId string, userId int) {
+
+	fmt.Println("Зашли в: " + roomId)
 
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	ws, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
-		log.Println(err)
+		log.Println(err.Error())
 		return
 	}
 
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
+	c := &connection{
+		ws: ws,
+		send: make(chan []byte, 256),
+		userId: userId,
+	}
 
-	//for q := 0; q < 1000; q++ {
-	//	_ = conn.WriteMessage(websocket.TextMessage, []byte("erg erg er g rg wer ger erwe r wert wer t"))
-	//}
+	fmt.Println(c)
 
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
-	go client.writePump()
-	go client.readPump()
+	s := subscription{c, roomId}
+	h.register <- s
+
+	_ = c.ws.WriteMessage(websocket.TextMessage, []byte("Hello!\n" + "RoomId: " + roomId))
+
+	go s.writePump()
+	go s.readPump()
 }

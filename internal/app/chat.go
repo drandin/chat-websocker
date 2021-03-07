@@ -27,14 +27,18 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 func Start() {
 
-	flag.Parse()
-	hub := newHub()
-	go hub.run()
+	go h.run()
+
+	roomId := "guest"
+	userId := 123
+
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+		serveWs(w, r, roomId, userId)
 	})
+
 	err := http.ListenAndServe(*addr, nil)
+
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
