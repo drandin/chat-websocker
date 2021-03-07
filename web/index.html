@@ -6,12 +6,12 @@
 
         window.onload = function () {
 
-            var conn;
-            var msg = document.getElementById("msg");
-            var log = document.getElementById("log");
+            let conn;
+            const msg = document.getElementById("msg");
+            const log = document.getElementById("log");
 
             function appendLog(item) {
-                var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
+                const doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
                 log.appendChild(item);
                 if (doScroll) {
                     log.scrollTop = log.scrollHeight - log.clientHeight;
@@ -33,24 +33,24 @@
             if (window["WebSocket"]) {
 
                 conn = new WebSocket("ws://localhost:8877/ws");
-                conn.onclose = function (evt) {
-                    var item = document.createElement("div");
+                conn.onclose = function () {
+                    const item = document.createElement("div");
                     item.innerHTML = "<b>Connection closed.</b>";
                     appendLog(item);
                 };
 
                 conn.onmessage = function (evt) {
-                    var messages = evt.data.split('\n');
+                    const messages = evt.data.split('\n');
 
-                    for (var i = 0; i < messages.length; i++) {
-                        var item = document.createElement("div");
-                        item.innerText = messages[i];
+                    for (let i = 0; i < messages.length; i++) {
+                        const item = document.createElement("div");
+                        item.innerHTML = messages[i];
                         appendLog(item);
                     }
                 };
 
             } else {
-                var item = document.createElement("div");
+                const item = document.createElement("div");
                 item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
                 appendLog(item);
             }
@@ -98,7 +98,7 @@
 <div id="log"></div>
 <form id="form">
     <input type="submit" value="Send" />
-    <input type="text" id="msg" size="64" autofocus />
+    <label for="msg">Сообщение:&nbsp;</label><input type="text" id="msg" size="64" autofocus />
 </form>
 </body>
 </html>

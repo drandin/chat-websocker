@@ -1,5 +1,7 @@
 package app
 
+import "strconv"
+
 type message struct {
 	data []byte
 	room string
@@ -71,9 +73,11 @@ func (h *hub) run() {
 
 			for c := range connections {
 
+				user := strconv.Itoa(c.userId) + "> "
+
 				select {
 
-				case c.send <- m.data:
+				case c.send <- append([]byte(user), m.data...):
 
 				default:
 					close(c.send)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -119,9 +120,10 @@ func (s *subscription) writePump() {
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(w http.ResponseWriter, r *http.Request, roomId string, userId int) {
+func serveWs(w http.ResponseWriter, r *http.Request, settings *settings) {
 
-	fmt.Println("Зашли в: " + roomId)
+	fmt.Println("Зашли в: " + settings.roomId)
+	fmt.Println("Пользователь Id: ", settings.userId)
 
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
@@ -137,15 +139,18 @@ func serveWs(w http.ResponseWriter, r *http.Request, roomId string, userId int) 
 	c := &connection{
 		ws: ws,
 		send: make(chan []byte, 256),
-		userId: userId,
+		userId: settings.userId,
 	}
 
 	fmt.Println(c)
 
-	s := subscription{c, roomId}
+	s := subscription{c, settings.roomId}
 	h.register <- s
 
-	_ = c.ws.WriteMessage(websocket.TextMessage, []byte("Hello!\n" + "RoomId: " + roomId))
+	_ = c.ws.WriteMessage(
+		websocket.TextMessage,
+		[]byte("Hello!\n" + "RoomId: " + settings.roomId + "\nUserId: " + strconv.Itoa(settings.userId)),
+	)
 
 	go s.writePump()
 	go s.readPump()
