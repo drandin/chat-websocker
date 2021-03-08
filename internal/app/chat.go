@@ -43,8 +43,14 @@ func serveHome(w http.ResponseWriter, r *http.Request, settings *settings) {
 // В реальном приложении эти параметры могут быть заданы на основании
 // данных, которые храняться в Cookies или как-либо иным способом
 func setSettings(s *settings)  {
+
+	rand.Seed(time.Now().UnixNano())
 	s.roomId = "room-1"
-	s.userId = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	s.userId = random(1, 9000)
+}
+
+func random(min int, max int) int {
+	return rand.Intn(max-min) + min
 }
 
 func render(w http.ResponseWriter, s *settings)  {

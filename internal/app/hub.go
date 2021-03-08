@@ -1,15 +1,21 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 )
 
 type message struct {
-	data []byte
-	room string
+	payload []byte
+	roomId string
 	userId int
+}
+
+type MessagePublic struct {
+	Payload string `json:"payload"`
+	RoomId string `json:"roomId"`
+	UserId int `json:"userId"`
 }
 
 type subscription struct {
@@ -86,21 +92,29 @@ func (h *hub) run() {
 
 		case m := <-h.broadcast:
 
-			connections := h.rooms[m.room]
+			connections := h.rooms[m.roomId]
 
 			for c := range connections {
 
-				user := strconv.Itoa(m.userId) + " >>> "
+				message := MessagePublic{
+					Payload: string(m.payload),
+					RoomId: m.roomId,
+					UserId: m.userId,
+				}
+
+				messageJson, _ := json.Marshal(message)
+
+				fmt.Println(string(messageJson))
 
 				select {
 
-				case c.send <- append([]byte(user), m.data...):
+				case c.send <- messageJson:
 
 				default:
 					close(c.send)
 					delete(connections, c)
 					if len(connections) == 0 {
-						delete(h.rooms, m.room)
+						delete(h.rooms, m.roomId)
 					}
 				}
 

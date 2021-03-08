@@ -50,11 +50,30 @@
                 };
 
                 conn.onmessage = function (evt) {
+
                     const messages = evt.data.split('\n');
 
                     for (let i = 0; i < messages.length; i++) {
+
                         const item = document.createElement("div");
-                        item.innerHTML = messages[i];
+
+                        let messageJson = JSON.parse(messages[i]);
+
+                        let payload = '';
+                        let userId = 0;
+
+                        if (messageJson['payload'] !== '') {
+                            payload = messageJson['payload'];
+                        }
+
+                        if (messageJson['userId'] >= 0) {
+                            userId = messageJson['userId'];
+                        }
+
+                        console.log(messageJson)
+
+                        item.innerHTML = '<span class="text-info">' + userId + '</span> <span class="text-muted">>>></span> ' + payload;
+
                         appendLog(item);
                     }
                 };
