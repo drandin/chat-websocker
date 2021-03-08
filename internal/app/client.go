@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -56,7 +55,7 @@ func (s subscription) readPump() {
 	_ = c.ws.SetReadDeadline(time.Now().Add(pongWait))
 
 	c.ws.SetPongHandler(func(string) error {
-		_ = c.ws.SetReadDeadline(time.Now().Add(pongWait));
+		_ = c.ws.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
@@ -72,7 +71,7 @@ func (s subscription) readPump() {
 			break
 		}
 
-		m := message{msg, s.room}
+		m := message{msg, s.room, c.userId}
 		h.broadcast <- m
 	}
 }
@@ -122,9 +121,6 @@ func (s *subscription) writePump() {
 // serveWs handles websocket requests from the peer.
 func serveWs(w http.ResponseWriter, r *http.Request, settings *settings) {
 
-	fmt.Println("Зашли в: " + settings.roomId)
-	fmt.Println("Пользователь Id: ", settings.userId)
-
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
@@ -142,16 +138,9 @@ func serveWs(w http.ResponseWriter, r *http.Request, settings *settings) {
 		userId: settings.userId,
 	}
 
-	fmt.Println(c)
-
 	s := subscription{c, settings.roomId}
 	h.register <- s
-
-	_ = c.ws.WriteMessage(
-		websocket.TextMessage,
-		[]byte("Hello!\n" + "RoomId: " + settings.roomId + "\nUserId: " + strconv.Itoa(settings.userId)),
-	)
-
+	fmt.Println(s.room, s.conn.userId)
 	go s.writePump()
 	go s.readPump()
 }

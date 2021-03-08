@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Chat Example</title>
+    <!-- CSS only -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <!-- JavaScript Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Realtime chat websocket</title>
     <script type="text/javascript">
 
         window.onload = function () {
@@ -18,15 +23,20 @@
                 }
             }
 
-            document.getElementById("form").onsubmit = function () {
+            document.getElementById("send-message").onclick = function () {
+
                 if (!conn) {
                     return false;
                 }
+
                 if (!msg.value) {
                     return false;
                 }
+
                 conn.send(msg.value);
+
                 msg.value = "";
+
                 return false;
             };
 
@@ -56,49 +66,59 @@
             }
         };
     </script>
-    <style type="text/css">
-        html {
-            overflow: hidden;
-        }
-
-        body {
-            overflow: hidden;
-            padding: 0;
-            margin: 0;
-            width: 100%;
-            height: 100%;
-            background: gray;
-        }
-
-        #log {
-            background: white;
-            margin: 0;
-            padding: 0.5em 0.5em 0.5em 0.5em;
-            position: absolute;
-            top: 0.5em;
-            left: 0.5em;
-            right: 0.5em;
-            bottom: 3em;
-            overflow: auto;
-        }
-
-        #form {
-            padding: 0 0.5em 0 0.5em;
-            margin: 0;
-            position: absolute;
-            bottom: 1em;
-            left: 0;
-            width: 100%;
-            overflow: hidden;
-        }
-
-    </style>
 </head>
 <body>
-<div id="log"></div>
-<form id="form">
-    <input type="submit" value="Send" />
-    <label for="msg">Сообщение:&nbsp;</label><input type="text" id="msg" size="64" autofocus />
-</form>
+
+<main class="flex-shrink-0">
+    <div class="container">
+        <br>
+        <div class="pt-5">
+            <br>
+            <div class="row">
+                <div class="col-lg-3">&nbsp;</div>
+                <div class="col-lg-6">
+                    <h3>Realtime чат на websocket</h3>
+                    <br>
+
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th scope="col">roomId</th>
+                            <th scope="col">userId</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ .RoomId }}</td>
+                            <td>{{ .UserId }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <br>
+
+                    <h5>Сообщения</h5>
+
+                    <div class="overflow-scroll shadow p-3 mb-5 bg-white rounded small" style="min-height: 400px; max-height: 400px;" id="log"></div>
+                    <div class="col-lg-3">&nbsp;</div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-3">&nbsp;</div>
+                <div class="col-lg-6">
+                    <form id="form">
+                        <div class="form-floating">
+                            <textarea class="form-control" placeholder="Leave a message here" id="msg"></textarea>
+                            <label for="msg" class="text-muted">Сообщение</label>
+                        </div>
+                        <div class="pt-4 text-center">
+                            <button type="button" class="btn btn-primary" id="send-message">Отправить сообщение</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-lg-3">&nbsp;</div>
+            </div>
+        </div>
+    </div>
+</main>
 </body>
 </html>

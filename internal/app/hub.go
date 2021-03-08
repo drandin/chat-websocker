@@ -1,10 +1,15 @@
 package app
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+	"time"
+)
 
 type message struct {
 	data []byte
 	room string
+	userId int
 }
 
 type subscription struct {
@@ -36,7 +41,19 @@ var h = hub{
 	rooms:      make(map[string]map[*connection]bool),
 }
 
+// Отправка сообщения в комнату "room-1"
+func (h *hub) test()  {
+	duration := time.Second * 7
+	time.Sleep(duration)
+	fmt.Println("pause")
+	fmt.Println(h.rooms["room-1"])
+	m := message{[]byte("Сообщение от сервера."), "room-1", 0}
+	h.broadcast <- m
+}
+
 func (h *hub) run() {
+
+	go h.test()
 
 	for {
 
@@ -73,7 +90,7 @@ func (h *hub) run() {
 
 			for c := range connections {
 
-				user := strconv.Itoa(c.userId) + "> "
+				user := strconv.Itoa(m.userId) + " >>> "
 
 				select {
 
