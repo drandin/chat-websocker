@@ -24,3 +24,9 @@ wss://your-domain.ru/websocket ---> http://localhost:8877/ws
       proxy_set_header Connection "Upgrade";
    }
 ```
+
+### Пример
+
+
+
+![Пример работы](https://drandin.ru/wp-content/uploads/2021/03/Запись-экрана-2021-03-21-в-18.18.12.gif)
